@@ -35,8 +35,7 @@ dp = Dispatcher(bot, storage=storage)
 def ssh_conect_to_server(server_ip, login, password):
     ssh_client = paramiko.SSHClient()
     ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    ssh_client.load_system_host_keys()
-    ssh_client.connect(server_ip, '3333', login, password, look_for_keys=False)
+    ssh_client.connect(server_ip, '3333', login, password, look_for_keys=False, disabled_algorithms={'keys': ['rsa-sha2-256', 'rsa-sha2-512']})
     return ssh_client
 
 @client.task()
