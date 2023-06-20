@@ -2,8 +2,8 @@ from peewee import *
 import config
 import datetime
 
-#db = PostgresqlDatabase(config.DB_NAME, user=config.DB_USERNAME, password=config.DB_PASSWORD)
-db = SqliteDatabase('vpn_bot.db')
+db = PostgresqlDatabase(config.DB_NAME, user=config.DB_USERNAME, password=config.DB_PASSWORD)
+#db = SqliteDatabase('vpn_bot.db')
 
 class BaseModel(Model):
     class Meta:
