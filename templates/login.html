@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login Form</title>
+  <!-- Bootstrap CSS -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.0.2/css/bootstrap.min.css" integrity="sha512-JVg3z7BCbWfhhHk4dXQ9qKYpA0UovXdrqO6yjNQm5KAPCvSxuXbDZL3YtI9dG4oEFGU4cJnWeHjFgH9j0w5mrg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+</head>
+<body>
+  <div class="container mt-5">
+    <h1>Login</h1>
+    <form method="POST">
+        <div class="mb-3">
+        <label for="username" class="form-label">Username</label>
+        <input type="text" class="form-control" id="username" name="username" aria-describedby="usernameHelp">
+        <div id="usernameHelp" class="form-text">Enter your username here.</div>
+      </div>
+      <div class="mb-3">
+        <label for="password" class="form-label">Password</label>
+        <input type="password" class="form-control" id="password" name="password">
+      </div>
+      <div class="mb-3 form-check">
+        <input type="checkbox" class="form-check-input" id="rememberMe" name="rememberMe">
+        <label class="form-check-label" for="rememberMe">Remember me</label>
+      </div>
+      <button type="submit" class="btn btn-primary">Submit</button>
+    </form>
+  </div>
+  <!-- Bootstrap JS -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.0.2/js/bootstrap.bundle.min.js" integrity="sha512-8wN0iYAH14aIKpEaJQ9otCrPZS+QOqKbJdWgvzI3ivB4tB0BwxCX46H7t7cVxwClk6Rl5jvq+y1/hfLgEM0bjQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+</body>
+</html>

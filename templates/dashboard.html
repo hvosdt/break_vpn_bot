@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>User List</title>
+  <!-- Link to Bootstrap CSS file -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css">
+</head>
+<body>
+  <a href='/logout'>Exit</a>
+  <div class="container">
+    <h1>User List</h1>
+    <table class="table">
+      <thead>
+        <tr>
+          <th>user id</th>
+          <th>expire_in</th>
+          <th>node</th>
+          <th>is_active</th>
+          <th>is_freemium</th>
+          <th>order_id</th>
+          <th>plan</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for user in users %}
+          <tr>
+            <td>{{ user.user_id }}</td>
+            <td>{{ user.expire_in }}</td>
+            <td>{{ user.node }}</td>
+            <td>{{ user.is_active }}</td>
+            <td>{{ user.is_freemium }}</td>
+            <td>{{ user.order_id }}</td>
+            <td>{{ user.plan }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <!-- Link to Bootstrap JS file -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
+
