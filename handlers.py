@@ -121,6 +121,7 @@ def create_vpn(data):
             order = create_order() #Если нет доступных, то создаем новый
         else:
             order = get_order_by_id(order_id)
+        print(order)
         ssh_client = ssh_conect_to_server(order['serverip'], order['serverlogin'], order['serverpassword'])
         print(order)
         #Добавляем количество клиентов в ноду
