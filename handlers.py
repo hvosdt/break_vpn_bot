@@ -119,13 +119,14 @@ def create_vpn(data):
         print(order_id)
         if order_id == 'Not avalible':
             order = create_order() #Если нет доступных, то создаем новый
+            server = Server.get(order_id=order['orderid'])
         else:
-            order = Server.get(order_id=order_id)
+            server = Server.get(order_id=order_id)
         print(order)
         ssh_client = ssh_conect_to_server(order.server_ip, order.server_login, order.server_password)
         print(order)
         #Добавляем количество клиентов в ноду
-        server = Server.get(order_id = order['orderid'])
+        #server = Server.get(order_id = order['orderid'])
         current_clients = server.clients
         server.clients = int(current_clients) + 1
         server.save()
