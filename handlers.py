@@ -62,8 +62,10 @@ def check_subscription():
 def check_avalible_servers():
     avalible_clients = 0
     servers = Server.select()
+    print(len(servers))
     for server in servers:
         avalible_clients += (int(server.server_plan) - int(server.clients))
+        print('Avalible clients: ' + str(avalible_clients))
     if avalible_clients < 10:
         order = create_order()
 
