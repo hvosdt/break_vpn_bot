@@ -2,3 +2,4 @@ venv/
 config.py
 db_update.py
 vpn_bot.db
+api_test.py

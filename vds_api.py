@@ -30,7 +30,7 @@ def get_orders():
 
 def create_order():
     response = requests.get(
-        '{api_uri}command={command}&login={api_login}&pass={api_pass}&json=1&tarifid={tarifid}&period={period}&addons={addons}&locationid=104&remark=Node2'.format(
+        '{api_uri}command={command}&login={api_login}&pass={api_pass}&json=1&tarifid={tarifid}&period={period}&addons={addons}&locationid=104'.format(
         command = 'createOrder',
         api_uri = config.VDS_API_URL, 
         api_login = config.VDS_API_LOGIN,
@@ -60,6 +60,8 @@ def create_order():
         sftp.put('revoke_user.sh','revoke_user.sh')
     stdin, stdout, stderr = ssh_client.exec_command('chmod +x add_user.sh')
     stdin, stdout, stderr = ssh_client.exec_command('chmod +x revoke_user.sh')
+    print('Создан новый сервер: ')
+    print(new_server)
     return new_server
 
 

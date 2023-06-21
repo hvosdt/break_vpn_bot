@@ -16,7 +16,7 @@ from celery.schedules import crontab
 from datetime import date, datetime, timedelta
 from dateutil.relativedelta import relativedelta
 
-client = Celery('profoto', broker=config.CELERY_BROKER_URL)
+client = Celery('break_vpn', broker=config.CELERY_BROKER_URL)
 client.conf.result_backend = config.CELERY_RESULT_BACKEND
 client.conf.timezone = 'Europe/Moscow'
 
@@ -25,6 +25,10 @@ client.conf.beat_schedule = {
     'check_subscription': {
         'task': 'handlers.check_subscription',
         'schedule': crontab(hour=config.CHECK_HOUR, minute=config.CHECK_MINUTE)
+    },
+    'check_avalible_servers': {
+        'task': 'handlers.check_avalible_servers',
+        'schedule': 60.0
     }
 }
 
@@ -53,6 +57,15 @@ def check_subscription():
             send_msg(user.user_id, msg)
         if str(expire) == str(date.today()):
             revoke_vpn(user.user_id)
+            
+@client.taks()
+def check_avalible_servers():
+    avalible_clients = 0
+    servers = Server.select()
+    for server in servers:
+        avalible_clients += (int(server.server_plan) - int(server.clients))
+    if avalible_clients < 10:
+        order = create_order()
 
 def revoke_vpn(user_id):
     user = User.get(user_id = user_id)
@@ -84,13 +97,12 @@ def send_document(chat_id, doc):
 
     print(resp.json())
     
-def get_avalible_server():
+def get_avalible_order_id():
     servers = Server.select()
     for server in servers:
         if server.clients < 10:
             return server.order_id
-        else:
-            return 'Not avalible'
+    return 'Not avalible'
 
 def get_order_by_id(id):
     orders = get_orders()
@@ -115,18 +127,13 @@ def create_vpn(data):
             send_msg(user_id, 'Ваша подписка продлена!')
             return 100
     else:
-        order_id = get_avalible_server() #Ищем доступный сервер
-        print(order_id)
-        if order_id == 'Not avalible':
-            order = create_order() #Если нет доступных, то создаем новый
-            server = Server.get(order_id=order['orderid'])
-        else:
-            server = Server.get(order_id=order_id)
-        
+        order_id = get_avalible_order_id() #Ищем доступный сервер
+        while order_id == 'Not avalible':
+            sleep(60)
+            order_id = get_avalible_order_id() #Ищем доступный сервер
+        server = Server.get(order_id=order_id)
         ssh_client = ssh_conect_to_server(server.server_ip, server.server_login, server.server_password)
         
-        #Добавляем количество клиентов в ноду
-        #server = Server.get(order_id = order['orderid'])
         current_clients = server.clients
         server.clients = int(current_clients) + 1
         server.save()
