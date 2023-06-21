@@ -58,7 +58,7 @@ def check_subscription():
         if str(expire) == str(date.today()):
             revoke_vpn(user.user_id)
             
-@client.taks()
+@client.task()
 def check_avalible_servers():
     avalible_clients = 0
     servers = Server.select()
