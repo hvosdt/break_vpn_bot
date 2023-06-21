@@ -1,6 +1,7 @@
 import requests
 import paramiko
 import config
+from time import sleep
 from models import Server
 
 def ssh_conect_to_server(server_ip, login, password):
@@ -28,6 +29,12 @@ def get_orders():
         api_pass = config.VDS_API_PASSWORD)).json()
     return response
 
+def get_status(order_id):
+    orders = get_orders()
+    for order in orders['orders']:
+        if order['orderid'] == order_id:
+            return order['status']
+    
 def create_order():
     response = requests.get(
         '{api_uri}command={command}&login={api_login}&pass={api_pass}&json=1&tarifid={tarifid}&period={period}&addons={addons}&locationid=104'.format(
@@ -44,7 +51,13 @@ def create_order():
         'serverlogin': str(response['serverlogin']),
         'serverpassword': str(response['serverpassword']),
         'serverip': 'localhost'}
-    orders = get_orders()  
+    status = get_status(new_server['orderid'])
+    while str(status) != '1':
+        sleep(60)
+        status = get_status(new_server['orderid'])
+        
+    orders = get_orders()
+    
     for order in orders['orders']:
         if order['orderid'] == new_server['orderid']:
             new_server['serverip'] = str(order['serverip'])  
