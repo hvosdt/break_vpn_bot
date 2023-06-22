@@ -3,7 +3,7 @@ from aiogram.types.message import ContentType
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
 
-from prices import MARAPHON, VPN30, VPN90, VPN180
+from prices import VPN30, VPN90, VPN180
 from models import User, Server
 from vds_api import create_order, get_orders
 
@@ -62,10 +62,8 @@ def check_subscription():
 def check_avalible_servers():
     avalible_clients = 0
     servers = Server.select()
-    print(len(servers))
     for server in servers:
         avalible_clients += (int(server.server_plan) - int(server.clients))
-        print('Avalible clients: ' + str(avalible_clients))
     if avalible_clients < 10:
         order = create_order()
 
@@ -186,7 +184,7 @@ start_kb1 = InlineKeyboardMarkup().add(inline_btn_30, inline_btn_90, inline_btn_
 
 @dp.message_handler(commands=['start'])
 async def start(message: types.message):
-    await message.answer('Привет {name}!\nЗдесь ты можешь приобрести подписку на VPN\n1 месяц - 200р\n3 месяца (-10%) - 540р\n6 месяцев 9 (-20%) - 960р\n\nЕсли возникли проблемы, то напиши на vpnbreak@gmail.com и укажи в теме свой ID {id}'.format(
+    await message.answer('Привет {name}!\nЗдесь ты можешь приобрести подписку на VPN\n1 месяц - 200р\n3 месяца (-10%) - 540р\n6 месяцев 9 (-20%) - 960р\n\nЕсли возникли проблемы, то напиши на vpn@prvms.ru и укажи в теме свой ID {id}'.format(
         name=message.from_user.first_name,
         id = message.from_user.id
     ), reply_markup=start_kb1)
