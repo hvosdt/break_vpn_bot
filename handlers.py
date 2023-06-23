@@ -119,7 +119,14 @@ def create_vpn(data):
             user_id = user_id
         )
     data['user'] = entry
-    invoice, new_invoice = Invoice.get_or_create(**data)
+    invoice, new_invoice = Invoice.get_or_create(
+        total_amount = data['total_amount'],
+        invoice_payload = data['invoice_payload'],
+        telegram_payment_charge_id = data['telegram_payment_charge_id'],
+        provider_payment_charge_id = data['provider_payment_charge_id'],
+        user = data['user']
+    )
+    
     if not new_invoice:
         logging.info('Платеж с ID {payid} уже существует.'.format(
             payid = data['telegram_payment_charge_id']

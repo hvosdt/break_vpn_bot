@@ -29,7 +29,6 @@ class User(BaseModel):
     
 class Invoice(BaseModel):
     date = DateTimeField(default=datetime.datetime.now())
-    expire_in = DateTimeField(default=datetime.datetime.now())
     currency = TextField(default='RUB')
     total_amount = IntegerField()
     invoice_payload = TextField()
