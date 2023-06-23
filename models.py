@@ -26,3 +26,13 @@ class User(BaseModel):
     is_freemium = BooleanField(default=False)
     order_id = TextField(default='0')
     plan = TextField(default='10')
+    
+class Invoice(BaseModel):
+    date = DateTimeField(default=datetime.datetime.now())
+    expire_in = DateTimeField(default=datetime.datetime.now())
+    currency = TextField(default='RUB')
+    total_amount = IntegerField()
+    invoice_payload = TextField()
+    telegram_payment_charge_id = TextField()
+    provider_payment_charge_id = TextField()
+    user = ForeignKeyField(User, backref='invoices')

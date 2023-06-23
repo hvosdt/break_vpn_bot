@@ -1,6 +1,6 @@
 from peewee import *
 from playhouse.migrate import *
-from models import User, Server, db
+from models import User, Server, Invoice, db
 
 #db = SqliteDatabase('vk.db')
 #migrator = SqliteMigrator(db)
@@ -10,7 +10,7 @@ from models import User, Server, db
 
 with db.atomic():
     db.drop_tables([User, Server])
-    db.create_tables([Server, User])
+    db.create_tables([Server, User, Invoice])
     #migrate(
     #    migrator.add_column('user', 'target_sex', token))
 

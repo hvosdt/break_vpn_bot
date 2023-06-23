@@ -4,17 +4,21 @@ from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardMar
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
 
 from prices import VPN30, VPN90, VPN180
-from models import User, Server
+from models import User, Server, Invoice
 from vds_api import create_order, get_orders
 
 import paramiko
 import requests
 import config
+import logging
 from time import sleep
 from celery import Celery
 from celery.schedules import crontab
 from datetime import date, datetime, timedelta
 from dateutil.relativedelta import relativedelta
+
+
+logging.basicConfig(level=logging.INFO, filename='vpn_bot.log')
 
 client = Celery('break_vpn', broker=config.CELERY_BROKER_URL)
 client.conf.result_backend = config.CELERY_RESULT_BACKEND
@@ -28,7 +32,7 @@ client.conf.beat_schedule = {
     },
     'check_avalible_servers': {
         'task': 'handlers.check_avalible_servers',
-        'schedule': 60.0
+        'schedule': 3600.0
     }
 }
 
@@ -39,9 +43,6 @@ dp = Dispatcher(bot, storage=storage)
 def ssh_conect_to_server(server_ip, login, password):
     ssh_client = paramiko.SSHClient()
     ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    print(server_ip)
-    print(login)
-    print(password)
     ssh_client.connect(server_ip, '3333', login, password, look_for_keys=False)
     return ssh_client
 
@@ -113,10 +114,16 @@ def get_order_by_id(id):
 @client.task()
 def create_vpn(data):
     user_id = data['user_id']
-    expire = int(data['expire'])
+    expire = int(data['expire_in'])
     entry, is_new = User.get_or_create(
             user_id = user_id
         )
+    data['user'] = entry
+    invoice, new_invoice = Invoice.get_or_create(**data)
+    if not new_invoice:
+        logging.info('Платеж с ID {payid} уже существует.'.format(
+            payid = data['telegram_payment_charge_id']
+        ))
     if entry.is_active == True:
             data = {'expire_in': entry.expire_in + timedelta(expire),
                 'is_active': True,
@@ -125,6 +132,10 @@ def create_vpn(data):
             query = User.update(data).where(User.user_id==user_id)
             query.execute()
             send_msg(user_id, 'Ваша подписка продлена!')
+            logging.info('Подписка для пользователя {user_id} продлена {days}на дней'.format(
+                user_id = user_id,
+                days = data['invoice_payload']
+            ))
             return 100
     else:
         order_id = get_avalible_order_id() #Ищем доступный сервер
@@ -147,6 +158,9 @@ def create_vpn(data):
         query.execute()
         
         command = './add_user.sh {name}'.format(name=user_id)
+        logging.info('Создан пользователь {user_id}'.format(
+            user_id = user_id
+        ))
         
         stdin, stdout, stderr = ssh_client.exec_command(command)
         sleep(10)
@@ -254,13 +268,19 @@ async def pre_checkout_query(pre_checkout_q: types.PreCheckoutQuery):
 # successful payment
 @dp.message_handler(content_types=ContentType.SUCCESSFUL_PAYMENT)
 async def successful_payment(message: types.Message):
-    print("SUCCESSFUL PAYMENT:")
     payment_info = message.successful_payment.to_python()
-    for k, v in payment_info.items():
-        print(f"{k} = {v}")
+    
+    #for k, v in payment_info.items():
+    #    print(f"{k} = {v}")
+    #    data = {str(k): str(v)}
  
-    data = {}
-    data['user_id'] = message.chat.id
-    data['expire'] = payment_info['invoice_payload']
-    create_vpn.apply_async(args=[data])
+    payment_info['user_id'] = message.chat.id
+    payment_info['expire_in'] = payment_info['invoice_payload']
+    #print(data)
+    logging.info('Платеж от {userid} на сумму {amount} прошел успешно. ID платежа: {payid}'.format(
+        userid = payment_info['user_id'],
+        amount = payment_info['total_amount'],
+        payid = payment_info['telegram_payment_charge_id']
+    ))
+    create_vpn.apply_async(args=[payment_info])
     return await message.answer('Платеж прошел успешно! Обработаю информацию, это займет не больше минуты.')
