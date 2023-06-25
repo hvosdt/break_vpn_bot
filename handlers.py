@@ -18,7 +18,7 @@ from datetime import date, datetime, timedelta
 from dateutil.relativedelta import relativedelta
 
 
-logging.basicConfig(level=logging.INFO, filename='vpn_bot.log')
+logging.basicConfig(level=logging.DEBUG, filename='vpn_bot.log')
 
 client = Celery('break_vpn', broker=config.CELERY_BROKER_URL)
 client.conf.result_backend = config.CELERY_RESULT_BACKEND
