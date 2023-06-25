@@ -32,7 +32,7 @@ client.conf.beat_schedule = {
     },
     'check_avalible_servers': {
         'task': 'handlers.check_avalible_servers',
-        'schedule': 3600.0
+        'schedule': 1800.0
     }
 }
 
@@ -170,7 +170,7 @@ def create_vpn(data):
         ))
         
         stdin, stdout, stderr = ssh_client.exec_command(command)
-        sleep(60)
+        sleep(20)
         
         msg_instruction = 'Инструкция по использованию:\n\n1. Скачай приложение OpenVPN Connect\n\n✔️ Для Айфона:\nhttps://apps.apple.com/ru/app/openvpn-connect-openvpn-app/id590379981\n\n✔️ Для Андроида:\nhttps://play.google.com/store/apps/details?id=net.openvpn.openvpn\n'
         send_msg(user_id, msg_instruction)
@@ -207,7 +207,7 @@ start_kb1 = InlineKeyboardMarkup().add(inline_btn_30, inline_btn_90, inline_btn_
 
 @dp.message_handler(commands=['start'])
 async def start(message: types.message):
-    await message.answer('Привет {name}!\nЗдесь ты можешь приобрести подписку на VPN\n1 месяц - 200р\n3 месяца (-10%) - 540р\n6 месяцев 9 (-20%) - 960р\nУ нас лишь одно правило - НЕ КАЧАТЬ И НЕ РАЗДАВАТЬ ТОРРЕНТЫ! За нарушение - бан навсегда без возврата денег.\nЕсли возникли проблемы, то напиши на vpn@prvms.ru и укажи в теме свой ID {id}'.format(
+    await message.answer('Привет {name}!\nЗдесь ты можешь приобрести подписку на VPN\n1 месяц - 200р\n3 месяца (-10%) - 540р\n6 месяцев 9 (-20%) - 960р\n\nУ нас лишь одно правило - НЕ КАЧАТЬ И НЕ РАЗДАВАТЬ ТОРРЕНТЫ!\nЗа нарушение - бан навсегда без возврата денег.\n\nЕсли возникли проблемы, то напиши на vpn@prvms.ru и укажи в теме свой ID {id}'.format(
         name=message.from_user.first_name,
         id = message.from_user.id
     ), reply_markup=start_kb1)
@@ -292,4 +292,4 @@ async def successful_payment(message: types.Message):
         payid = payment_info['telegram_payment_charge_id']
     ))
     create_vpn.apply_async(args=[payment_info])
-    return await message.answer('Платеж прошел успешно! Обработаю информацию, это займет не больше минуты.')
+    return await message.answer('Платеж прошел успешно! Обработаю информацию, это не займет много времени.')
