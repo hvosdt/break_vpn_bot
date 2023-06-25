@@ -170,7 +170,7 @@ def create_vpn(data):
         ))
         
         stdin, stdout, stderr = ssh_client.exec_command(command)
-        sleep(10)
+        sleep(60)
         
         msg_instruction = 'Инструкция по использованию:\n\n1. Скачай приложение OpenVPN Connect\n\n✔️ Для Айфона:\nhttps://apps.apple.com/ru/app/openvpn-connect-openvpn-app/id590379981\n\n✔️ Для Андроида:\nhttps://play.google.com/store/apps/details?id=net.openvpn.openvpn\n'
         send_msg(user_id, msg_instruction)
@@ -178,11 +178,13 @@ def create_vpn(data):
         with ssh_client.open_sftp() as sftp:
             name = user_id
             sftp.get('{name}.ovpn'.format(name=name), 'ovpn/{name}.ovpn'.format(name=name))
+        sleep(60)
         doc = open('ovpn/{name}.ovpn'.format(name=name), 'rb')
         send_document(user_id, doc)
         msg = '2. Открой файл ⬆️ в приложении OpenVPN Connect и нажми ADD.\n\n3. Включи VPN и радуйся жизни!\nЗа 3 дня до истечения срока подписки, я тебе об этом напомню.'.format(
             name=user_id
         )
+        sleep(5)
         send_msg(user_id, msg)
         return 200
      
