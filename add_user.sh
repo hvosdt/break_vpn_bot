@@ -17,7 +17,7 @@ new_client () {
 	echo "</tls-crypt>"
 	} > ~/"$1".ovpn
 }
-
+export EASYRSA_BATCH=1
 cd /etc/openvpn/server/easy-rsa/
 			EASYRSA_CERT_EXPIRE=3650 ./easyrsa build-client-full "$1" nopass
 			# Generates the custom client.ovpn

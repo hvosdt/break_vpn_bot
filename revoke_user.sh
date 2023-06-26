@@ -8,7 +8,7 @@ else
 	echo "Looks like you aren't running this installer on Debian, Ubuntu or CentOS"
 	exit
 fi
-
+export EASYRSA_BATCH=1
 
 cd /etc/openvpn/server/easy-rsa/
 ./easyrsa --batch revoke "$1"
