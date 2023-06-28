@@ -2,9 +2,11 @@ from aiogram import Bot, Dispatcher, types
 from aiogram.types.message import ContentType
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
+from aiogram.dispatcher.filters.state import State, StatesGroup
+from aiogram.dispatcher import FSMContext
 
 from prices import VPN30, VPN90, VPN180
-from models import User, Server, Invoice
+from models import User, Server, Invoice, Promocode
 from vds_api import create_order, get_orders
 
 import paramiko
@@ -118,6 +120,10 @@ def create_vpn(data):
     entry, is_new = User.get_or_create(
             user_id = user_id
         )
+    if entry.promo:
+        expire += 30
+        entry.promo = False
+        entry.save()
     data['user'] = entry
     invoice, new_invoice = Invoice.get_or_create(
         total_amount = data['total_amount'],
@@ -141,7 +147,7 @@ def create_vpn(data):
             send_msg(user_id, 'Ваша подписка продлена!')
             logging.info('Подписка для пользователя {user_id} продлена {days}на дней'.format(
                 user_id = user_id,
-                days = data['invoice_payload']
+                days = expire
             ))
             return 100
     else:
@@ -178,7 +184,7 @@ def create_vpn(data):
         with ssh_client.open_sftp() as sftp:
             name = user_id
             sftp.get('{name}.ovpn'.format(name=name), 'ovpn/{name}.ovpn'.format(name=name))
-        sleep(60)
+        sleep(20)
         doc = open('ovpn/{name}.ovpn'.format(name=name), 'rb')
         send_document(user_id, doc)
         msg = '2. Открой файл ⬆️ в приложении OpenVPN Connect и нажми ADD.\n\n3. Включи VPN и радуйся жизни!\nЗа 3 дня до истечения срока подписки, я тебе об этом напомню.'.format(
@@ -203,14 +209,58 @@ async def check(message: types.message):
 inline_btn_30 = InlineKeyboardButton('1 месяц', callback_data='vpn_btn_30')
 inline_btn_90 = InlineKeyboardButton('3 месяца', callback_data='vpn_btn_90')
 inline_btn_180 = InlineKeyboardButton('6 месяцев', callback_data='vpn_btn_180')
-start_kb1 = InlineKeyboardMarkup().add(inline_btn_30, inline_btn_90, inline_btn_180)
+inline_btn_promo =InlineKeyboardButton('Промокод', callback_data='btn_promocode')
+start_kb1 = InlineKeyboardMarkup().add(inline_btn_30, inline_btn_90, inline_btn_180, inline_btn_promo)
 
 @dp.message_handler(commands=['start'])
 async def start(message: types.message):
+    user, is_new = User.get_or_create(
+            user_id = message.from_user.id
+        )
     await message.answer('Привет {name}!\nЗдесь ты можешь приобрести подписку на VPN\n1 месяц - 200р\n3 месяца (-10%) - 540р\n6 месяцев 9 (-20%) - 960р\n\nУ нас лишь одно правило - НЕ КАЧАТЬ И НЕ РАЗДАВАТЬ ТОРРЕНТЫ!\nЗа нарушение - бан навсегда без возврата денег.\n\nЕсли возникли проблемы, то напиши на vpn@prvms.ru и укажи в теме свой ID {id}'.format(
         name=message.from_user.first_name,
         id = message.from_user.id
     ), reply_markup=start_kb1)
+    
+class PromoForm(StatesGroup):
+    promocode = State()
+    
+@dp.callback_query_handler(lambda c: c.data == 'btn_promocode')
+async def process_promocode_btn(callback_query: types.CallbackQuery):
+    await bot.answer_callback_query(callback_query.id)
+    user_id = callback_query.from_user.id
+    await PromoForm.promocode.set()
+    await bot.send_message(chat_id = user_id, text="Напишите промокод")
+
+# Сюда приходит ответ с appid
+@dp.message_handler(state=PromoForm.promocode)
+async def process_app_id(message: types.Message, state: FSMContext):
+    async with state.proxy() as data:
+        user_text = message.text.lower()
+        
+        try:
+            promo = Promocode.get(promocode = user_text)
+            if user_text == promo.promocode:
+                promo.used += 1
+                promo.save()
+                
+                user = User.get(user_id = message.from_user.id)
+                
+                if user.trial_avalible == True:    
+                    user.promo = True
+                    user.trial_avalible = False
+                    user.save()
+                    await message.answer('Принято! Вам в подарок дополнительный месяц подписки!')
+                else:
+                    await message.answer('Вы уже активировали дополнительный месяц подписки.')    
+            else:
+                logging.info('промокод не найден')
+                await message.answer('Промокод не найден!')
+        except:
+            logging.warning('Ошибка получения промо')
+            await message.answer('Промокод не найден!')
+        
+    await state.finish()
 
 @dp.callback_query_handler(lambda c: c.data == 'vpn_btn_30')
 async def process_callback_button1(callback_query: types.CallbackQuery):
