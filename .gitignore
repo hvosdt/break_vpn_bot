@@ -5,3 +5,6 @@ db_update.py
 vpn_bot.db
 api_test.py
 vpn_bot.log
+*.ovpn
+send.py
+update_db.py

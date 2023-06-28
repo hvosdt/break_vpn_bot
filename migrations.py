@@ -1,16 +1,22 @@
 from peewee import *
 from playhouse.migrate import *
-from models import User, Server, Invoice, db
+from models import User, Server, Invoice, Promocode, db
 
 #db = SqliteDatabase('vk.db')
 #migrator = SqliteMigrator(db)
-#migrator = PostgresqlMigrator(db)
+migrator = PostgresqlMigrator(db)
 
 #token = IntegerField(default=3)
+trial_avalible = BooleanField(default=True)
+promo = BooleanField(default=False)
 
 with db.atomic():
-    db.drop_tables([User, Server])
-    db.create_tables([Server, User, Invoice])
-    #migrate(
-    #    migrator.add_column('user', 'target_sex', token))
+    #db.drop_tables([User, Server, Invoice, Promocode])
+    db.create_tables([Promocode])
+    #db.create_tables([Promocode])
+    migrate(
+        migrator.add_column('user', 'trial_avalible', trial_avalible))
+    migrate(
+        migrator.add_column('user', 'promo', promo))
+    
 
