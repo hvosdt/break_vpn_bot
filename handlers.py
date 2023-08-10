@@ -119,7 +119,7 @@ def check_subscription():
         stdin, stdout, stderr = ssh_client.exec_command('rm -rf server-multi-passwd.json')
         with ssh_client.open_sftp() as sftp:
             sftp.put('server-multi-passwd.json','server-multi-passwd.json')
-        stdin, stdout, stderr = ssh_client.exec_command('ss-server --manager-address /var/run/shadowsocks-manager.sock -c server-multi-passwd.json')
+        stdin, stdout, stderr = ssh_client.exec_command('ss-manager --manager-address /var/run/shadowsocks-manager.sock -c server-multi-passwd.json')
         
         
     
