@@ -1,5 +1,6 @@
 venv/
 __pycache__/
+helpers/
 config.py
 db_update.py
 vpn_bot.db

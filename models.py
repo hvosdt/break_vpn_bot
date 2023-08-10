@@ -28,6 +28,16 @@ class User(BaseModel):
     plan = TextField(default='10')
     trial_avalible = BooleanField(default=True)
     promo = BooleanField(default=False)
+    order_type = TextField(default='shadowsocks')
+    
+class SS_config(BaseModel):
+    cipher = TextField(default='chacha20-ietf-poly1305')
+    server_ip = TextField(default='0.0.0.0')
+    password = TextField(default='pass')
+    port = TextField(default='8300')
+    user = ForeignKeyField(User, backref='ss_config', null = True)
+    is_avalible = TextField(default='True')
+
     
 class Invoice(BaseModel):
     date = DateTimeField(default=datetime.datetime.now())

@@ -6,13 +6,17 @@ from aiogram.dispatcher.filters.state import State, StatesGroup
 from aiogram.dispatcher import FSMContext
 
 from prices import VPN30, VPN90, VPN180
-from models import User, Server, Invoice, Promocode
+from models import User, Server, Invoice, Promocode, SS_config
 from vds_api import create_order, get_orders
 
 import paramiko
+import string
+import random
+import json
 import requests
 import config
 import logging
+import base64
 from time import sleep
 from celery import Celery
 from celery.schedules import crontab
@@ -42,11 +46,36 @@ bot = Bot(token=config.TELEGRAM_TOKEN)
 storage = MemoryStorage()
 dp = Dispatcher(bot, storage=storage)
 
+def generate_password(length):
+    # Define the characters that can be used in the password
+    characters = string.ascii_letters + string.digits
+    
+    # Generate a random password of given length
+    password = ''.join(random.choice(characters) for _ in range(length))
+    return password
+
 def ssh_conect_to_server(server_ip, login, password):
     ssh_client = paramiko.SSHClient()
     ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     ssh_client.connect(server_ip, '3333', login, password, look_for_keys=False)
     return ssh_client
+
+def get_ss_string(server_ip, user_id):    
+    ss_configs = SS_config.select().where(SS_config.server_ip == server_ip)
+    #invoices = Invoice.select().join(User).where(Invoice.user == user.id)
+    for ss_config in ss_configs:
+        if ss_config.is_avalible:
+            ss_string = '{cipher}:{password}@{ip}:{port}'.format(
+                cipher = ss_config.cipher,
+                password = ss_config.password,
+                ip = ss_config.server_ip,
+                port = ss_config.port
+            )
+            ss_config.user = User.get(user_id = user_id)
+            ss_config.is_avalible = False
+            ss_config.save()
+            encoded = 'ss://' + str(base64.b64encode(ss_string.encode("utf-8")).decode('utf-8'))
+            return encoded
 
 @client.task()
 def check_subscription():
@@ -59,7 +88,41 @@ def check_subscription():
             msg = 'До окончания вашей подписки осталось 3 дня. Для проделния, нажмите /start и оплатите подписку.'
             send_msg(user.user_id, msg)
         if str(expire) == str(date.today()):
-            revoke_vpn(user.user_id)
+            try:
+                revoke_vpn(user.user_id)
+            except: pass
+            if user.order_type == 'shadowsocks':
+                ss_conf = SS_config.get(user = user.id)
+                ss_conf.password = str(generate_password(6))
+                ss_conf.is_avalible = True
+                ss_conf.save()
+    ss_configs = SS_config.select().where(SS_config.is_avalible == True)
+    for conf in ss_configs:
+        conf.password = generate_password(6)
+        conf.save()
+    ss_servers = Server.select().where(Server.server_type == 'shadowsocks')
+    ss_dict = {
+    "server": "0.0.0.0",
+    "port_password": {
+        "8381": "foobar1"
+},
+    "method": "chacha20-ietf-poly1305"
+}
+    for server in ss_servers:
+        ss_configs = SS_config.select().where(SS_config.server_ip == server.server_ip)
+        
+        for conf in ss_configs:    
+            ss_dict['port_password'][conf.port] = conf.password
+        with open('server-multi-passwd.json', 'w') as file:
+            json.dump(ss_dict, file, indent=4)
+        ssh_client = ssh_conect_to_server(server.server_ip, server.server_login, server.server_password)
+        stdin, stdout, stderr = ssh_client.exec_command('rm -rf server-multi-passwd.json')
+        with ssh_client.open_sftp() as sftp:
+            sftp.put('server-multi-passwd.json','server-multi-passwd.json')
+        stdin, stdout, stderr = ssh_client.exec_command('ss-server --manager-address /var/run/shadowsocks-manager.sock -c server-multi-passwd.json')
+        
+        
+    
             
 @client.task()
 def check_avalible_servers():
@@ -193,6 +256,75 @@ def create_vpn(data):
         sleep(5)
         send_msg(user_id, msg)
         return 200
+    
+@client.task()
+def create_shadow(data):
+    user_id = data['user_id']
+    expire = int(data['expire_in'])
+    entry, is_new = User.get_or_create(
+            user_id = user_id
+        )
+    if entry.promo:
+        expire += 30
+        entry.promo = False
+        entry.save()
+    data['user'] = entry
+    invoice, new_invoice = Invoice.get_or_create(
+        total_amount = data['total_amount'],
+        invoice_payload = data['invoice_payload'],
+        telegram_payment_charge_id = data['telegram_payment_charge_id'],
+        provider_payment_charge_id = data['provider_payment_charge_id'],
+        user = data['user']
+    )
+    
+    if not new_invoice:
+        logging.info('Платеж с ID {payid} уже существует.'.format(
+            payid = data['telegram_payment_charge_id']
+        ))
+    if entry.is_active == True:
+            data = {'expire_in': entry.expire_in + timedelta(expire),
+                'is_active': True,
+                'is_freemium': False
+                }
+            query = User.update(data).where(User.user_id==user_id)
+            query.execute()
+            send_msg(user_id, 'Ваша подписка продлена!')
+            logging.info('Подписка для пользователя {user_id} продлена {days}на дней'.format(
+                user_id = user_id,
+                days = expire
+            ))
+            return 100
+    else:
+        order_id = get_avalible_order_id() #Ищем доступный сервер
+        while order_id == 'Not avalible':
+            sleep(60)
+            order_id = get_avalible_order_id() #Ищем доступный сервер
+        server = Server.get(order_id=order_id)
+        #ssh_client = ssh_conect_to_server(server.server_ip, server.server_login, server.server_password)
+        
+        current_clients = server.clients
+        server.clients = int(current_clients) + 1
+        server.save()
+        
+        data = {'expire_in': date.today() + timedelta(expire),
+                'is_active': True,
+                'is_freemium': False,
+                'order_id': server.order_id,
+                'order_type': 'shadowsocks'
+                }
+        query = User.update(data).where(User.user_id==user_id)
+        query.execute()
+        
+        logging.info('Создан пользователь {user_id}'.format(
+            user_id = user_id
+        ))
+        
+        msg_instruction = 'Инструкция по использованию:\n\nСкачайте приложение\nДля Айфона: https://apps.apple.com/ru/app/potatso/id1239860606\nДля Андроида: https://play.google.com/store/apps/details?id=com.github.shadowsocks\nСледуйте инструкции\nДля айфона https://youtube.com/shorts/ZaIYyU3T6Io\nДля андроида https://youtube.com/shorts/EWwxu6BVAuo\n\nСтрока для подключения:\n'
+        send_msg(user_id, msg_instruction)
+        ss_string =get_ss_string(server.server_ip, user_id)
+        send_msg(user_id, ss_string)
+        return 200
+
      
 @dp.message_handler(commands=['check'])
 async def check(message: types.message):
@@ -341,5 +473,5 @@ async def successful_payment(message: types.Message):
         amount = payment_info['total_amount'],
         payid = payment_info['telegram_payment_charge_id']
     ))
-    create_vpn.apply_async(args=[payment_info])
+    create_shadow.apply_async(args=[payment_info])
     return await message.answer('Платеж прошел успешно! Обработаю информацию, это не займет много времени.')
