@@ -36,7 +36,7 @@ class SS_config(BaseModel):
     password = TextField(default='pass')
     port = TextField(default='8300')
     user = ForeignKeyField(User, backref='ss_config', null = True)
-    is_avalible = TextField(default='True')
+    is_avalible = BooleanField(default='True')
 
     
 class Invoice(BaseModel):
