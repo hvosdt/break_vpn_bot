@@ -163,10 +163,10 @@ def send_document(chat_id, doc):
 
     print(resp.json())
     
-def get_avalible_order_id():
+def get_avalible_order_id(server_type):
     servers = Server.select()
     for server in servers:
-        if server.clients < 10:
+        if server.clients < 10 and server.server_type == server_type:
             return server.order_id
     return 'Not avalible'
 
@@ -214,10 +214,10 @@ def create_vpn(data):
             ))
             return 100
     else:
-        order_id = get_avalible_order_id() #Ищем доступный сервер
+        order_id = get_avalible_order_id('openvpn') #Ищем доступный сервер
         while order_id == 'Not avalible':
             sleep(60)
-            order_id = get_avalible_order_id() #Ищем доступный сервер
+            order_id = get_avalible_order_id('openvpn') #Ищем доступный сервер
         server = Server.get(order_id=order_id)
         ssh_client = ssh_conect_to_server(server.server_ip, server.server_login, server.server_password)
         
@@ -295,10 +295,10 @@ def create_shadow(data):
             ))
             return 100
     else:
-        order_id = get_avalible_order_id() #Ищем доступный сервер
+        order_id = get_avalible_order_id('shadowsocks') #Ищем доступный сервер
         while order_id == 'Not avalible':
             sleep(60)
-            order_id = get_avalible_order_id() #Ищем доступный сервер
+            order_id = get_avalible_order_id('shadowsocks') #Ищем доступный сервер
         server = Server.get(order_id=order_id)
         #ssh_client = ssh_conect_to_server(server.server_ip, server.server_login, server.server_password)
         
