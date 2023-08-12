@@ -325,6 +325,46 @@ def create_shadow(data):
         send_msg(user_id, ss_string)
         return 200
 
+@client.task()
+def create_shadow_trial(data):
+    user_id = data['user_id']
+    expire = int(data['expire_in'])
+    entry, is_new = User.get_or_create(
+            user_id = user_id
+        )
+    data['user'] = entry
+    
+    order_id = get_avalible_order_id('shadowsocks') #Ищем доступный сервер
+    print(order_id)
+    while order_id == 'Not avalible':
+        sleep(60)
+        order_id = get_avalible_order_id('shadowsocks') #Ищем доступный сервер
+    server = Server.get(order_id=order_id)
+    #ssh_client = ssh_conect_to_server(server.server_ip, server.server_login, server.server_password)
+    
+    current_clients = server.clients
+    server.clients = int(current_clients) + 1
+    server.save()
+    
+    data = {'expire_in': date.today() + timedelta(expire),
+            'is_active': True,
+            'is_freemium': True,
+            'order_id': server.order_id,
+            'order_type': 'shadowsocks'
+            }
+    query = User.update(data).where(User.user_id==user_id)
+    query.execute()
+    
+    logging.info('Создан пользователь {user_id}'.format(
+        user_id = user_id
+    ))
+    
+    msg_instruction = 'Инструкция по использованию:\n\nСкачайте приложение\nДля Айфона: https://apps.apple.com/ru/app/potatso/id1239860606\nДля Андроида: https://play.google.com/store/apps/details?id=com.github.shadowsocks\nСледуйте инструкции\nДля айфона https://youtube.com/shorts/ZaIYyU3T6Io\nДля андроида https://youtube.com/shorts/EWwxu6BVAuo\n\nСтрока для подключения:\n'
+    send_msg(user_id, msg_instruction)
+    ss_string =get_ss_string(server.server_ip, user_id)
+    send_msg(user_id, ss_string)
+    return 200
+
      
 @dp.message_handler(commands=['check'])
 async def check(message: types.message):
@@ -342,7 +382,8 @@ inline_btn_30 = InlineKeyboardButton('1 месяц', callback_data='vpn_btn_30')
 inline_btn_90 = InlineKeyboardButton('3 месяца', callback_data='vpn_btn_90')
 inline_btn_180 = InlineKeyboardButton('6 месяцев', callback_data='vpn_btn_180')
 inline_btn_promo =InlineKeyboardButton('Промокод', callback_data='btn_promocode')
-start_kb1 = InlineKeyboardMarkup().add(inline_btn_30, inline_btn_90, inline_btn_180, inline_btn_promo)
+inline_btn_trial = InlineKeyboardButton('Попробоавть бесплатно', callback_data='vpn_btn_trial')
+start_kb1 = InlineKeyboardMarkup().add(inline_btn_30, inline_btn_90, inline_btn_180, inline_btn_trial, inline_btn_promo)
 
 @dp.message_handler(commands=['start'])
 async def start(message: types.message):
@@ -395,7 +436,7 @@ async def process_app_id(message: types.Message, state: FSMContext):
     await state.finish()
 
 @dp.callback_query_handler(lambda c: c.data == 'vpn_btn_30')
-async def process_callback_button1(callback_query: types.CallbackQuery):
+async def process_callback_button_30(callback_query: types.CallbackQuery):
     await bot.answer_callback_query(callback_query.id)
     user_id = callback_query.from_user.id
     await bot.send_invoice(
@@ -414,7 +455,7 @@ async def process_callback_button1(callback_query: types.CallbackQuery):
         payload="30")
 
 @dp.callback_query_handler(lambda c: c.data == 'vpn_btn_90')
-async def process_callback_button1(callback_query: types.CallbackQuery):
+async def process_callback_button_90(callback_query: types.CallbackQuery):
     await bot.answer_callback_query(callback_query.id)
     user_id = callback_query.from_user.id
     await bot.send_invoice(
@@ -433,7 +474,7 @@ async def process_callback_button1(callback_query: types.CallbackQuery):
         payload="90")
     
 @dp.callback_query_handler(lambda c: c.data == 'vpn_btn_180')
-async def process_callback_button1(callback_query: types.CallbackQuery):
+async def process_callback_button_180(callback_query: types.CallbackQuery):
     await bot.answer_callback_query(callback_query.id)
     user_id = callback_query.from_user.id
     await bot.send_invoice(
@@ -450,6 +491,27 @@ async def process_callback_button1(callback_query: types.CallbackQuery):
         prices=[VPN180],
         start_parameter="vpn-subscription",
         payload="180")
+    
+@dp.callback_query_handler(lambda c: c.data == 'vpn_btn_trial')
+async def process_callback_trial(callback_query: types.CallbackQuery):
+    await bot.answer_callback_query(callback_query.id)
+    user_id = callback_query.from_user.id
+    user = User.get(user_id = user_id)
+    print(user.trial_avalible)            
+    if user.trial_avalible == True:    
+        user.trial_avalible = False
+        user.save()        
+    else:
+        send_msg(user_id, 'Вы уже активировали пробный период')
+        return 100
+    data = {}
+    data['user_id'] = user_id
+    data['expire_in'] = '7'
+
+    await create_shadow_trial.apply_async(args=[data])
+    
+    
+
     
 # pre checkout  (must be answered in 10 seconds)
 @dp.pre_checkout_query_handler(lambda query: True)
@@ -474,4 +536,4 @@ async def successful_payment(message: types.Message):
         payid = payment_info['telegram_payment_charge_id']
     ))
     create_shadow.apply_async(args=[payment_info])
-    return await message.answer('Платеж прошел успешно! Обработаю информацию, это не займет много времени.')
+    return await message.answer('Платеж прошел успешно! Обработаю информацию, это займет немного времени.')
