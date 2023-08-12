@@ -359,7 +359,7 @@ def create_shadow_trial(data):
         user_id = user_id
     ))
     
-    msg_instruction = 'Инструкция по использованию:\n\nСкачайте приложение\nДля Айфона: https://apps.apple.com/ru/app/potatso/id1239860606\nДля Андроида: https://play.google.com/store/apps/details?id=com.github.shadowsocks\nСледуйте инструкции\nДля айфона https://youtube.com/shorts/ZaIYyU3T6Io\nДля андроида https://youtube.com/shorts/EWwxu6BVAuo\n\nСтрока для подключения:\n'
+    msg_instruction = 'Вы активировали 7 дней бесплатного периода. Инструкция по использованию:\n\nСкачайте приложение\nДля Айфона: https://apps.apple.com/ru/app/potatso/id1239860606\nДля Андроида: https://play.google.com/store/apps/details?id=com.github.shadowsocks\nСледуйте инструкции\nДля айфона https://youtube.com/shorts/ZaIYyU3T6Io\nДля андроида https://youtube.com/shorts/EWwxu6BVAuo\n\nСтрока для подключения:\n'
     send_msg(user_id, msg_instruction)
     ss_string =get_ss_string(server.server_ip, user_id)
     send_msg(user_id, ss_string)
@@ -382,7 +382,7 @@ inline_btn_30 = InlineKeyboardButton('1 месяц', callback_data='vpn_btn_30')
 inline_btn_90 = InlineKeyboardButton('3 месяца', callback_data='vpn_btn_90')
 inline_btn_180 = InlineKeyboardButton('6 месяцев', callback_data='vpn_btn_180')
 inline_btn_promo =InlineKeyboardButton('Промокод', callback_data='btn_promocode')
-inline_btn_trial = InlineKeyboardButton('Попробоавть бесплатно', callback_data='vpn_btn_trial')
+inline_btn_trial = InlineKeyboardButton('ТестДрайв', callback_data='vpn_btn_trial')
 start_kb1 = InlineKeyboardMarkup().add(inline_btn_30, inline_btn_90, inline_btn_180, inline_btn_trial, inline_btn_promo)
 
 @dp.message_handler(commands=['start'])
@@ -390,7 +390,7 @@ async def start(message: types.message):
     user, is_new = User.get_or_create(
             user_id = message.from_user.id
         )
-    await message.answer('Привет {name}!\nЗдесь ты можешь приобрести подписку на VPN\n1 месяц - 200р\n3 месяца (-10%) - 540р\n6 месяцев 9 (-20%) - 960р\n\nУ нас лишь одно правило - НЕ КАЧАТЬ И НЕ РАЗДАВАТЬ ТОРРЕНТЫ!\nЗа нарушение - бан навсегда без возврата денег.\n\nЕсли возникли проблемы, то напиши на vpn@prvms.ru и укажи в теме свой ID {id}'.format(
+    await message.answer('Привет {name}!\nЗдесь ты можешь приобрести подписку на VPN\n1 месяц - 200р\n3 месяца (-10%) - 540р\n6 месяцев 9 (-20%) - 960р\nТестДрайв - пробный период на 7 дней БЕСПЛАТНО!\n\nУ нас лишь одно правило - НЕ КАЧАТЬ И НЕ РАЗДАВАТЬ ТОРРЕНТЫ!\nЗа нарушение - бан навсегда без возврата денег.\n\nЕсли возникли проблемы, то напиши на vpn@prvms.ru и укажи в теме свой ID {id}'.format(
         name=message.from_user.first_name,
         id = message.from_user.id
     ), reply_markup=start_kb1)
