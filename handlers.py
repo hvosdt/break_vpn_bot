@@ -131,7 +131,8 @@ def check_avalible_servers():
     for server in servers:
         avalible_clients += (int(server.server_plan) - int(server.clients))
     if avalible_clients < 10:
-        order = create_order()
+        #order = create_order()
+        send_msg('182149382', 'Нужно больше серверов')
 
 def revoke_vpn(user_id):
     user = User.get(user_id = user_id)
@@ -323,6 +324,7 @@ def create_shadow(data):
         send_msg(user_id, msg_instruction)
         ss_string =get_ss_string(server.server_ip, user_id)
         send_msg(user_id, ss_string)
+        send_msg('182149382', 'Куплена новая подписка!')
         return 200
 
 @client.task()
@@ -363,6 +365,7 @@ def create_shadow_trial(data):
     send_msg(user_id, msg_instruction)
     ss_string =get_ss_string(server.server_ip, user_id)
     send_msg(user_id, ss_string)
+    send_msg('182149382', 'Активирована пробная подписка')
     return 200
 
      
@@ -507,7 +510,7 @@ async def process_callback_trial(callback_query: types.CallbackQuery):
     data = {}
     data['user_id'] = user_id
     data['expire_in'] = '7'
-
+    
     await create_shadow_trial.apply_async(args=[data])
     
     
