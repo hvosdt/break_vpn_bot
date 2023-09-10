@@ -511,10 +511,10 @@ async def process_callback_trial(callback_query: types.CallbackQuery):
         data['user_id'] = user_id
         data['expire_in'] = '7'
     
-        await create_shadow_trial.apply_async(args=[data])
+        create_shadow_trial.apply_async(args=[data])
     else:
         send_msg(user_id, 'Вы уже активировали пробный период')
-        return await 100
+        
     
     
     
