@@ -482,7 +482,7 @@ async def process_callback_button_90(callback_query: types.CallbackQuery):
 async def process_callback_button_180(callback_query: types.CallbackQuery):
     await bot.answer_callback_query(callback_query.id)
     user_id = callback_query.from_user.id
-    send_msg(user_id, user_id)
+    
     await bot.send_invoice(
         user_id,
         title = 'Подписка на VPN',
