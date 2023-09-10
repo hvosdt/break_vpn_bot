@@ -500,7 +500,8 @@ async def process_callback_trial(callback_query: types.CallbackQuery):
     await bot.answer_callback_query(callback_query.id)
     user_id = callback_query.from_user.id
     user = User.get_or_create(user_id = user_id)
-    print(user.trial_avalible)            
+    send_msg(user_id, 'Кнопка нажата')
+    #print(user.trial_avalible)            
     if user.trial_avalible == True:    
         user.trial_avalible = False
         user.save()        
