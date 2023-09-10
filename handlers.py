@@ -499,14 +499,14 @@ async def process_callback_button_180(callback_query: types.CallbackQuery):
 async def process_callback_trial(callback_query: types.CallbackQuery):
     await bot.answer_callback_query(callback_query.id)
     user_id = callback_query.from_user.id
-    user = User.get(user_id = user_id)
+    user = User.get_or_create(user_id = user_id)
     print(user.trial_avalible)            
     if user.trial_avalible == True:    
         user.trial_avalible = False
         user.save()        
     else:
         send_msg(user_id, 'Вы уже активировали пробный период')
-        return 100
+        return await 100
     data = {}
     data['user_id'] = user_id
     data['expire_in'] = '7'

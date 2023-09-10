@@ -112,7 +112,6 @@ def dashboard():
     
     users = User.select()
     return render_template('dashboard.html', users=users)
-    
 
 if __name__ == '__main__':
     
