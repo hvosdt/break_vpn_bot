@@ -480,6 +480,7 @@ async def process_callback_button_90(callback_query: types.CallbackQuery):
 async def process_callback_button_180(callback_query: types.CallbackQuery):
     await bot.answer_callback_query(callback_query.id)
     user_id = callback_query.from_user.id
+    send_msg(user_id, user_id)
     await bot.send_invoice(
         user_id,
         title = 'Подписка на VPN',
@@ -499,10 +500,9 @@ async def process_callback_button_180(callback_query: types.CallbackQuery):
 async def process_callback_trial(callback_query: types.CallbackQuery):
     await bot.answer_callback_query(callback_query.id)
     user_id = callback_query.from_user.id
-    send_msg(user_id, user_id)
+    send_msg(user_id, f'{user_id}')
     user = User.get(user_id = user_id)
-    send_msg(user_id, 'Кнопка нажата')
-    send_msg(user_id, user.user_id)
+    send_msg(user_id, f'{user.user_id}')
     #print(user.trial_avalible)            
     if user.trial_avalible == True:    
         user.trial_avalible = False
