@@ -30,6 +30,7 @@ client = Celery('break_vpn', broker=config.CELERY_BROKER_URL)
 client.conf.result_backend = config.CELERY_RESULT_BACKEND
 client.conf.timezone = 'Europe/Moscow'
 
+my_id = '182149382'
 
 client.conf.beat_schedule = {
     'check_subscription': {
@@ -393,6 +394,7 @@ async def start(message: types.message):
     user, is_new = User.get_or_create(
             user_id = message.from_user.id
         )
+    send_msg(my_id, 'Нажали старт')
     await message.answer('Привет {name}!\nЗдесь ты можешь приобрести подписку на VPN\n1 месяц - 200р\n3 месяца (-10%) - 540р\n6 месяцев 9 (-20%) - 960р\nТестДрайв - пробный период на 7 дней БЕСПЛАТНО!\n\nУ нас лишь одно правило - НЕ КАЧАТЬ И НЕ РАЗДАВАТЬ ТОРРЕНТЫ!\nЗа нарушение - бан навсегда без возврата денег.\n\nЕсли возникли проблемы, то напиши на vpn@prvms.ru и укажи в теме свой ID {id}'.format(
         name=message.from_user.first_name,
         id = message.from_user.id
@@ -500,9 +502,9 @@ async def process_callback_button_180(callback_query: types.CallbackQuery):
 async def process_callback_trial(callback_query: types.CallbackQuery):
     await bot.answer_callback_query(callback_query.id)
     user_id = callback_query.from_user.id
-    send_msg(user_id, f'{user_id}')
+    
     user = User.get(user_id = user_id)
-    send_msg(user_id, f'{user.user_id}')
+    
     #print(user.trial_avalible)            
     if user.trial_avalible == True:    
         user.trial_avalible = False
@@ -512,6 +514,7 @@ async def process_callback_trial(callback_query: types.CallbackQuery):
         data['expire_in'] = '7'
     
         create_shadow_trial.apply_async(args=[data])
+        send_msg(my_id, 'Создаю новый триал')
     else:
         send_msg(user_id, 'Вы уже активировали пробный период')
         
