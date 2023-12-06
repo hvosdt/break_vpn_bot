@@ -510,7 +510,7 @@ async def process_callback_button_30(callback_query: types.CallbackQuery):
     pay_btn = InlineKeyboardButton('Оплатить', url=url)
     pay_markup = InlineKeyboardMarkup().add(pay_btn)
     
-    check_payment(payment_id, user_id, '30')
+    check_payment.apply_async(payment_id, user_id, '30')
     await bot.send_message(chat_id=user_id, reply_markup=pay_markup)
 
 
@@ -526,7 +526,7 @@ async def process_callback_button_90(callback_query: types.CallbackQuery):
     pay_btn = InlineKeyboardButton('Оплатить', url=url)
     pay_markup = InlineKeyboardMarkup().add(pay_btn)
     
-    check_payment(payment_id, user_id, '90')
+    check_payment.apply_async(payment_id, user_id, '90')
     await bot.send_message(chat_id=user_id, reply_markup=pay_markup)
     
 @dp.callback_query_handler(lambda c: c.data == 'vpn_btn_180')
@@ -541,7 +541,7 @@ async def process_callback_button_180(callback_query: types.CallbackQuery):
     pay_btn = InlineKeyboardButton('Оплатить', url=url)
     pay_markup = InlineKeyboardMarkup().add(pay_btn)
     
-    check_payment(payment_id, user_id, '180')
+    check_payment.apply_async(payment_id, user_id, '180')
     await bot.send_message(chat_id=user_id, reply_markup=pay_markup)
     
 @dp.callback_query_handler(lambda c: c.data == 'vpn_btn_trial')
