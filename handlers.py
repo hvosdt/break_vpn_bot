@@ -504,14 +504,14 @@ async def process_callback_button_30(callback_query: types.CallbackQuery):
     
     user_id = callback_query.from_user.id
     payment_id, payment_html = init_payment(user_id, 5)
-    
+    print(user_id)
     url = f'https://yoomoney.ru/checkout/payments/v2/contract?orderId={payment_id}'
     
     pay_btn = InlineKeyboardButton('Оплатить', url=url)
     pay_markup = InlineKeyboardMarkup().add(pay_btn)
     
     #check_payment.apply_async(args=[payment_id, user_id, '30'])
-    return await bot.send_message(chat_id=user_id, reply_markup=pay_markup)
+    await bot.send_message(chat_id=user_id, reply_markup=pay_markup)
 
 
 @dp.callback_query_handler(lambda c: c.data == 'vpn_btn_90')
