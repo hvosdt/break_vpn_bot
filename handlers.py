@@ -511,7 +511,7 @@ async def process_callback_button_30(callback_query: types.CallbackQuery):
     pay_markup = InlineKeyboardMarkup().add(pay_btn)
     print('before')
     #check_payment.apply_async(args=[payment_id, user_id, '30'])
-    bot.send_message(chat_id=user_id, text='12', reply_markup=pay_markup)
+    await bot.send_message(chat_id=user_id, text='', reply_markup=pay_markup)
     print('after')
 
 
