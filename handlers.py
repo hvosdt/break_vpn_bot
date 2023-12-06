@@ -489,7 +489,7 @@ def check_payment(payment_id, user_id, expire_in):
                 payment_info['user_id'] = str(user_id)
                 payment_info['expire_in'] = str(expire_in)
                 send_msg(user_id, 'Платеж прошел успешно! Обработаю информацию, это займет немного времени.')
-                #create_shadow.apply_async(args=[payment_info])
+                create_shadow.apply_async(args=[payment_info])
                 return 'Done'
         except:
             send_msg(user_id, 'Ошибка обработки платежа. Обратитесь в поддержку на vpn@prvms.ru или повторите позже.')
@@ -503,8 +503,8 @@ async def process_callback_button_30(callback_query: types.CallbackQuery):
     await bot.answer_callback_query(callback_query.id)
     
     user_id = callback_query.from_user.id
-    payment_id, payment_html = init_payment(user_id, 5)
-    print(user_id)
+    payment_id, payment_html = init_payment(user_id, 200)
+    
     url = f'https://yoomoney.ru/checkout/payments/v2/contract?orderId={payment_id}'
     
     pay_btn = InlineKeyboardButton('Оплатить', url=url)
@@ -528,7 +528,7 @@ async def process_callback_button_90(callback_query: types.CallbackQuery):
     pay_markup = InlineKeyboardMarkup().add(pay_btn)
     
     check_payment.apply_async(payment_id, user_id, '90')
-    await bot.send_message(chat_id=user_id, reply_markup=pay_markup)
+    await bot.send_message(chat_id=user_id, text='К оплате 540 рублей', reply_markup=pay_markup)
     
 @dp.callback_query_handler(lambda c: c.data == 'vpn_btn_180')
 async def process_callback_button_180(callback_query: types.CallbackQuery):
@@ -543,7 +543,7 @@ async def process_callback_button_180(callback_query: types.CallbackQuery):
     pay_markup = InlineKeyboardMarkup().add(pay_btn)
     
     check_payment.apply_async(payment_id, user_id, '180')
-    await bot.send_message(chat_id=user_id, reply_markup=pay_markup)
+    await bot.send_message(chat_id=user_id, text='К оплате 960 рублей', reply_markup=pay_markup)
     
 @dp.callback_query_handler(lambda c: c.data == 'vpn_btn_trial')
 async def process_callback_trial(callback_query: types.CallbackQuery):
