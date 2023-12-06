@@ -500,7 +500,7 @@ def check_payment(payment_id, user_id, expire_in):
 
 @dp.callback_query_handler(lambda c: c.data == 'vpn_btn_30')
 async def process_callback_button_30(callback_query: types.CallbackQuery):
-    await bot.answer_callback_query(callback_query.id)
+    bot.answer_callback_query(callback_query.id)
     
     user_id = callback_query.from_user.id
     payment_id, payment_html = init_payment(user_id, 5)
