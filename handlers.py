@@ -1,7 +1,7 @@
 from aiogram import Bot, Dispatcher, types
 from aiogram.types.message import ContentType
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardMarkup, InlineKeyboardButton
-from aiogram.fsm_storage.memory import MemoryStorage
+#from aiogram.fsm_storage.memory import MemoryStorage
 from aiogram.dispatcher.filters.state import State, StatesGroup
 from aiogram.dispatcher import FSMContext
 
@@ -46,8 +46,8 @@ client.conf.beat_schedule = {
 }
 
 bot = Bot(token=config.TELEGRAM_TOKEN)
-storage = MemoryStorage()
-dp = Dispatcher(bot, storage=storage)
+#storage = MemoryStorage()
+dp = Dispatcher(bot)
 
 def generate_password(length):
     # Define the characters that can be used in the password
