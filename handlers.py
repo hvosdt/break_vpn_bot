@@ -509,9 +509,10 @@ async def process_callback_button_30(callback_query: types.CallbackQuery):
     
     pay_btn = InlineKeyboardButton('Оплатить', url=url)
     pay_markup = InlineKeyboardMarkup().add(pay_btn)
-    
+    print('before')
     #check_payment.apply_async(args=[payment_id, user_id, '30'])
     bot.sendMessage(chat_id=user_id, reply_markup=pay_markup)
+    print('after')
 
 
 @dp.callback_query_handler(lambda c: c.data == 'vpn_btn_90')
