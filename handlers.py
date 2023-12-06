@@ -5,13 +5,16 @@ from aiogram.contrib.fsm_storage.memory import MemoryStorage
 from aiogram.dispatcher.filters.state import State, StatesGroup
 from aiogram.dispatcher import FSMContext
 
+from yookassa import Payment
+from config import shop_id, secret_key
+
 from prices import VPN30, VPN90, VPN180
 from models import User, Server, Invoice, Promocode, SS_config
 from vds_api import create_order, get_orders
-
 import paramiko
 import string
 import random
+import uuid
 import json
 import requests
 import config
@@ -22,7 +25,6 @@ from celery import Celery
 from celery.schedules import crontab
 from datetime import date, datetime, timedelta
 from dateutil.relativedelta import relativedelta
-
 
 logging.basicConfig(level=logging.DEBUG, filename='vpn_bot.log')
 
@@ -92,6 +94,7 @@ def check_subscription():
             try:
                 revoke_vpn(user.user_id)
             except: pass
+            user.is_active = False
             if user.order_type == 'shadowsocks':
                 ss_conf = SS_config.get(user = user.id)
                 ss_conf.password = str(generate_password(6))
@@ -130,8 +133,8 @@ def check_avalible_servers():
     avalible_clients = 0
     servers = Server.select()
     for server in servers:
-        avalible_clients += (int(server.server_plan) - int(server.clients))
-    if avalible_clients < 10:
+        avalible_clients += 10 - int(server.clients)
+    if avalible_clients < 5:
         #order = create_order()
         send_msg('182149382', 'Нужно больше серверов')
 
@@ -170,6 +173,7 @@ def get_avalible_order_id(server_type):
     for server in servers:
         if server.clients < 10 and server.server_type == server_type:
             return server.order_id
+    send_msg('182149382', 'Нет доступных серверов')
     return 'Not avalible'
 
 def get_order_by_id(id):
@@ -271,7 +275,7 @@ def create_shadow(data):
         entry.promo = False
         entry.save()
     data['user'] = entry
-    invoice, new_invoice = Invoice.get_or_create(
+    '''invoice, new_invoice = Invoice.get_or_create(
         total_amount = data['total_amount'],
         invoice_payload = data['invoice_payload'],
         telegram_payment_charge_id = data['telegram_payment_charge_id'],
@@ -282,7 +286,7 @@ def create_shadow(data):
     if not new_invoice:
         logging.info('Платеж с ID {payid} уже существует.'.format(
             payid = data['telegram_payment_charge_id']
-        ))
+        ))'''
     if entry.is_active == True:
             data = {'expire_in': entry.expire_in + timedelta(expire),
                 'is_active': True,
@@ -321,7 +325,7 @@ def create_shadow(data):
             user_id = user_id
         ))
         
-        msg_instruction = 'Инструкция по использованию:\n\nСкачайте приложение\nДля Айфона: https://apps.apple.com/ru/app/potatso/id1239860606\nДля Андроида: https://play.google.com/store/apps/details?id=com.github.shadowsocks\nСледуйте инструкции\nДля айфона https://youtube.com/shorts/ZaIYyU3T6Io\nДля андроида https://youtube.com/shorts/EWwxu6BVAuo\n\nСтрока для подключения:\n'
+        msg_instruction = 'Инструкция по использованию:\n\nСкачайте приложение\nДля Айфона: https://apps.apple.com/ru/app/streisand/id6450534064\nДля Андроида: https://play.google.com/store/apps/details?id=com.github.shadowsocks\nСледуйте инструкции\nДля айфона https://www.youtube.com/shorts/mA-vyXmBw0A\nДля андроида https://youtube.com/shorts/EWwxu6BVAuo\n\nСтрока для подключения:\n'
         send_msg(user_id, msg_instruction)
         ss_string =get_ss_string(server.server_ip, user_id)
         send_msg(user_id, ss_string)
@@ -361,8 +365,7 @@ def create_shadow_trial(data):
     logging.info('Создан пользователь {user_id}'.format(
         user_id = user_id
     ))
-    
-    msg_instruction = 'Вы активировали 7 дней бесплатного периода. Инструкция по использованию:\n\nСкачайте приложение\nДля Айфона: https://apps.apple.com/ru/app/potatso/id1239860606\nДля Андроида: https://play.google.com/store/apps/details?id=com.github.shadowsocks\nСледуйте инструкции\nДля айфона https://youtube.com/shorts/ZaIYyU3T6Io\nДля андроида https://youtube.com/shorts/EWwxu6BVAuo\n\nСтрока для подключения:\n'
+    msg_instruction = 'Вы активировали 7 дней бесплатного периода. Инструкция по использованию:\n\nСкачайте приложение\nДля Айфона: https://apps.apple.com/ru/app/streisand/id6450534064\nДля Андроида: https://play.google.com/store/apps/details?id=com.github.shadowsocks\nСледуйте инструкции\nДля айфона https://www.youtube.com/shorts/mA-vyXmBw0A\nДля андроида https://youtube.com/shorts/EWwxu6BVAuo\n\nСтрока для подключения:\n'
     send_msg(user_id, msg_instruction)
     ss_string =get_ss_string(server.server_ip, user_id)
     send_msg(user_id, ss_string)
@@ -440,63 +443,106 @@ async def process_app_id(message: types.Message, state: FSMContext):
         
     await state.finish()
 
+def init_payment(user_id, amount):
+    idempotence_key = str(uuid.uuid4())
+    url = 'https://api.yookassa.ru/v3/payments'
+    
+    newheaders = {
+    'Idempotence-Key': idempotence_key,
+    'Content-Type': 'application/json'
+    }
+    
+    data = {
+                "amount": {
+                "value": str(amount),
+                "currency": "RUB"
+                },
+                "confirmation": {
+                "type": "embedded"
+                },
+                "capture": True
+        }
+    
+    resp = requests.post(url, auth=(shop_id, secret_key), json=data, headers=newheaders).json()
+    confirmation_token = resp['confirmation']['confirmation_token']
+    payment_id = resp['id']
+    with open('index.html', 'r') as file:
+        payment_html = file.read().replace('toreplace', str(confirmation_token))
+    return payment_id, payment_html
+
+@client.task()
+def check_payment(payment_id, user_id, expire_in): 
+       
+    idempotence_key = str(uuid.uuid4())
+    url = f'https://api.yookassa.ru/v3/payments/{payment_id}'
+    
+    newheaders = {
+    'Idempotence-Key': idempotence_key,
+    'Content-Type': 'application/json'
+    }
+    payment_info = {}
+    timeout = 600
+    while timeout > 0:
+        try:
+            resp = requests.get(url, auth=(shop_id, secret_key), headers=newheaders).json()
+            if resp['status'] == 'succeeded':
+                payment_info['user_id'] = str(user_id)
+                payment_info['expire_in'] = str(expire_in)
+                send_msg(user_id, 'Платеж прошел успешно! Обработаю информацию, это займет немного времени.')
+                #create_shadow.apply_async(args=[payment_info])
+                return 'Done'
+        except:
+            send_msg(user_id, 'Ошибка обработки платежа. Обратитесь в поддержку на vpn@prvms.ru или повторите позже.')
+            return 'Error response'
+        sleep(1)
+        timeout -= 1
+    return 'Timeout'
+
 @dp.callback_query_handler(lambda c: c.data == 'vpn_btn_30')
 async def process_callback_button_30(callback_query: types.CallbackQuery):
     await bot.answer_callback_query(callback_query.id)
+    
     user_id = callback_query.from_user.id
-    await bot.send_invoice(
-        user_id,
-        title = 'Подписка на VPN',
-        description = 'на 1 месяц',
-        provider_token = config.PAYMENTS_TOKEN,
-        currency = 'rub',
-        #photo_url="https://milalink.ru/uploads/posts/2018-02/1518206226_selfi-zhizn-napokaz.jpg",
-        #photo_width=416,
-        #photo_height=234,
-        #photo_size=416,
-        is_flexible=False,
-        prices=[VPN30],
-        start_parameter="vpn-subscription",
-        payload="30")
+    payment_id, payment_html = init_payment(user_id, 5)
+    
+    url = f'https://yoomoney.ru/checkout/payments/v2/contract?orderId={payment_id}'
+    
+    pay_btn = InlineKeyboardButton('Оплатить', url=url)
+    pay_markup = InlineKeyboardMarkup().add(pay_btn)
+    
+    check_payment(payment_id, user_id, '30')
+    await bot.send_message(chat_id=user_id, reply_markup=pay_markup)
+
 
 @dp.callback_query_handler(lambda c: c.data == 'vpn_btn_90')
 async def process_callback_button_90(callback_query: types.CallbackQuery):
     await bot.answer_callback_query(callback_query.id)
+    
     user_id = callback_query.from_user.id
-    await bot.send_invoice(
-        user_id,
-        title = 'Подписка на VPN',
-        description = 'на 3 месяца',
-        provider_token = config.PAYMENTS_TOKEN,
-        currency = 'rub',
-        #photo_url="https://milalink.ru/uploads/posts/2018-02/1518206226_selfi-zhizn-napokaz.jpg",
-        #photo_width=416,
-        #photo_height=234,
-        #photo_size=416,
-        is_flexible=False,
-        prices=[VPN90],
-        start_parameter="vpn-subscription",
-        payload="90")
+    payment_id, payment_html = init_payment(user_id, 540)
+    
+    url = f'https://yoomoney.ru/checkout/payments/v2/contract?orderId={payment_id}'
+    
+    pay_btn = InlineKeyboardButton('Оплатить', url=url)
+    pay_markup = InlineKeyboardMarkup().add(pay_btn)
+    
+    check_payment(payment_id, user_id, '90')
+    await bot.send_message(chat_id=user_id, reply_markup=pay_markup)
     
 @dp.callback_query_handler(lambda c: c.data == 'vpn_btn_180')
 async def process_callback_button_180(callback_query: types.CallbackQuery):
     await bot.answer_callback_query(callback_query.id)
-    user_id = callback_query.from_user.id
     
-    await bot.send_invoice(
-        user_id,
-        title = 'Подписка на VPN',
-        description = 'на 6 месяцев',
-        provider_token = config.PAYMENTS_TOKEN,
-        currency = 'rub',
-        #photo_url="https://milalink.ru/uploads/posts/2018-02/1518206226_selfi-zhizn-napokaz.jpg",
-        #photo_width=416,
-        #photo_height=234,
-        #photo_size=416,
-        is_flexible=False,
-        prices=[VPN180],
-        start_parameter="vpn-subscription",
-        payload="180")
+    user_id = callback_query.from_user.id
+    payment_id, payment_html = init_payment(user_id, 960)
+    
+    url = f'https://yoomoney.ru/checkout/payments/v2/contract?orderId={payment_id}'
+    
+    pay_btn = InlineKeyboardButton('Оплатить', url=url)
+    pay_markup = InlineKeyboardMarkup().add(pay_btn)
+    
+    check_payment(payment_id, user_id, '180')
+    await bot.send_message(chat_id=user_id, reply_markup=pay_markup)
     
 @dp.callback_query_handler(lambda c: c.data == 'vpn_btn_trial')
 async def process_callback_trial(callback_query: types.CallbackQuery):
@@ -517,12 +563,7 @@ async def process_callback_trial(callback_query: types.CallbackQuery):
         send_msg(my_id, 'Создаю новый триал')
     else:
         send_msg(user_id, 'Вы уже активировали пробный период')
-        
-    
-    
-    
-
-    
+          
 # pre checkout  (must be answered in 10 seconds)
 @dp.pre_checkout_query_handler(lambda query: True)
 async def pre_checkout_query(pre_checkout_q: types.PreCheckoutQuery):
