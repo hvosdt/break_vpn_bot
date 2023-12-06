@@ -510,7 +510,7 @@ async def process_callback_button_30(callback_query: types.CallbackQuery):
     pay_btn = InlineKeyboardButton('Оплатить', url=url)
     pay_markup = InlineKeyboardMarkup().add(pay_btn)
     
-    check_payment.apply_async(payment_id, user_id, '30')
+    check_payment.apply_async(args=[payment_id, user_id, '30'])
     await bot.send_message(chat_id=user_id, reply_markup=pay_markup)
 
 
