@@ -95,6 +95,7 @@ def check_subscription():
                 revoke_vpn(user.user_id)
             except: pass
             user.is_active = False
+            user.save()
             if user.order_type == 'shadowsocks':
                 ss_conf = SS_config.get(user = user.id)
                 ss_conf.password = str(generate_password(6))
@@ -133,7 +134,8 @@ def check_avalible_servers():
     avalible_clients = 0
     servers = Server.select()
     for server in servers:
-        avalible_clients += 10 - int(server.clients)
+        inc = 10 - int(server.clients)
+        avalible_clients += inc
     if avalible_clients < 5:
         #order = create_order()
         send_msg('182149382', 'Нужно больше серверов')
