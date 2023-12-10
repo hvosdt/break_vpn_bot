@@ -402,6 +402,12 @@ async def start(message: types.message):
         name=message.from_user.first_name,
         id = message.from_user.id
     ), reply_markup=start_kb1)
+
+@dp.message_handler(commands=['pay'])
+async def start(message: types.message):
+    user_id = message.from_user.id
+    send_msg(my_id, 'Нажали оплатить')
+    await message.answer(f'Варианты оплаты:', reply_markup=start_kb1)
     
 class PromoForm(StatesGroup):
     promocode = State()
@@ -528,7 +534,7 @@ async def process_callback_button_90(callback_query: types.CallbackQuery):
     pay_btn = InlineKeyboardButton('Оплатить', url=url)
     pay_markup = InlineKeyboardMarkup().add(pay_btn)
     
-    check_payment.apply_async(payment_id, user_id, '90')
+    check_payment.apply_async(args=[payment_id, user_id, '90'])
     await bot.send_message(chat_id=user_id, text='К оплате 540 рублей', reply_markup=pay_markup)
     
 @dp.callback_query_handler(lambda c: c.data == 'vpn_btn_180')
@@ -543,7 +549,7 @@ async def process_callback_button_180(callback_query: types.CallbackQuery):
     pay_btn = InlineKeyboardButton('Оплатить', url=url)
     pay_markup = InlineKeyboardMarkup().add(pay_btn)
     
-    check_payment.apply_async(payment_id, user_id, '180')
+    check_payment.apply_async(args=[payment_id, user_id, '180'])
     await bot.send_message(chat_id=user_id, text='К оплате 960 рублей', reply_markup=pay_markup)
     
 @dp.callback_query_handler(lambda c: c.data == 'vpn_btn_trial')
