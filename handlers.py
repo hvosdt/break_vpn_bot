@@ -469,7 +469,9 @@ def init_payment(user_id, amount):
                 "type": "embedded"
                 },
                 "capture": True,
-                'merchant_customer_id': str(user_id)
+                "merchant_customer_id": str(user_id),
+                "description": f"{user_id}"
+
         }
     
     resp = requests.post(url, auth=(shop_id, secret_key), json=data, headers=newheaders).json()
